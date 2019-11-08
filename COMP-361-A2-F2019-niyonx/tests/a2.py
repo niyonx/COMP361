@@ -130,10 +130,6 @@ def extrapolation_3_2_5():
 '''
 
 
-def df(x, h=10E-2):
-    return (f(x + h) - f(x - h)) / (2 * h)
-
-
 def f_and_df(t):
     '''
     Task: return a tuple containing (1) the value of the velocity v
@@ -247,9 +243,16 @@ def f_4_1_26(x_data, y_data, x):
                       array([1, 2, 0.5])) = [0, 0, 0]
     Test: function 'test_f' in 'tests/test_problem_4_1_26.py'
     '''
-    ## YOUR CODE HERE
+    s = [1,1,1]
+    for i in range(len(x_data)):
+        if (x_data[i]-x[0])**2+(y_data[i]-x[1])**2 == x[2]**2:
+            s[i] = 0
+    return s
     raise Exception("Not implemented")
 
+print(f_4_1_26(array([0.5, 1, 1.5]),
+                      array([2, 2.5, 2]),
+                      array([1, 2, 0.5])))
 
 def problem_4_1_26(x_data, y_data):
     '''
