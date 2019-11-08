@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from numpy import array, arange, sign, mean
+from numpy import array, arange, sign, mean, zeros, shape, dot, argmax
 import math
 
 '''
@@ -210,15 +210,7 @@ def problem_4_1_19(v1, acc):
     raise Exception("Not implemented")
 
 
-def f(t):
-    u = 2510
-    M0 = 2.8E6
-    mdot = 13.3E3
-    g = 9.81
-    return (u * math.log(M0 / (M0 - mdot * t)) - g * t) - v1
-
-
-print(problem_4_1_19(335, 0.1))
+# print(problem_4_1_19(335, 0.1))
 
 '''
     Part 4: Systems of non-linear equations
@@ -273,9 +265,102 @@ def problem_4_1_26(x_data, y_data):
     Hint: use Newton-Raphson for systems of non-linear equations to find
           a zero of f_4_1_26.
     '''
-    ## YOUR CODE HERE
-    raise Exception("Not implemented")
 
+    def jacobian(f, x):
+        '''
+        Returns the Jacobian matrix of f taken in x J(x)
+        '''
+        n = len(x)
+        jac = zeros((n, n))
+        h = 10E-4
+        fx = f(x)
+        # go through the columns of J
+        for j in range(n):
+            # compute x + h ej
+            old_xj = x[j]
+            x[j] += h
+            # update the Jacobian matrix (eq 3)
+            # Now x is x + h*ej
+            jac[:, j] = (f(x) - fx) / h
+            # restore x[j]
+            x[j] = old_xj
+        return jac
+
+    def gauss_substitution(a, b):
+        n, m = shape(a)
+        n2, = shape(b)
+        assert (n == n2)
+        x = zeros(n)
+        for i in range(n - 1, -1, -1):  # decreasing index
+            x[i] = (b[i] - dot(a[i, i + 1:], x[i + 1:])) / a[i, i]
+        return x
+
+    def swap(a, i, j):
+        if len(shape(a)) == 1:
+            a[i], a[j] = a[j], a[i]  # unpacking
+        else:
+            a[[i, j], :] = a[[j, i], :]
+
+    def gauss_elimination_pivot(a, b, verbose=False):
+        n, m = shape(a)
+        n2, = shape(b)
+        assert (n == n2)
+        # New in pivot version
+        s = zeros(n)
+        for i in range(n):
+            s[i] = max(abs(a[i, :]))
+        for k in range(n - 1):
+            # New in pivot version
+            p = argmax(abs(a[k:, k]) / s[k:]) + k
+            swap(a, p, k)
+            swap(b, p, k)
+            swap(s, p, k)
+            # The remainder remains as in the previous version
+            for i in range(k + 1, n):
+                assert (a[k, k] != 0)  # this shouldn't happen now, unless the matrix is singular
+                if (a[i, k] != 0):  # no need to do anything when lambda is 0
+                    lmbda = a[i, k] / a[k, k]  # lambda is a reserved keyword in Python
+                    a[i, k:n] = a[i, k:n] - lmbda * a[k, k:n]  # list slice operations
+                    b[i] = b[i] - lmbda * b[k]
+                if verbose:
+                    print(a, b)
+
+    def gauss_pivot(a, b):
+        gauss_elimination_pivot(a, b)
+        return gauss_substitution(a, b)  # as in the previous version
+
+    def newton_raphson_system(f, init_x, epsilon=10E-10, max_iterations=1000):
+        '''
+        Return a solution of f(x)=0 by Newton-Raphson method.
+        init_x is the initial guess of the solution
+        '''
+        x = init_x
+        for i in range(max_iterations):
+            J = jacobian(f, x)
+            delta_x = gauss_pivot(J, -f(x))  # we could also use our functions from Chapter 2!
+            x = x + delta_x
+            if math.sqrt(sum(delta_x ** 2)) <= epsilon:
+                print("Converged in {} iterations".format(i))
+                return x
+        raise Exception("Could not find root!")
+
+    def f(x):
+        f = zeros((len(x)))
+        f[0] = (x_data[0] - x[0]) ** 2 + (y_data[0] - x[1]) ** 2 - x[2] ** 2
+        f[1] = (x_data[1] - x[0]) ** 2 + (y_data[1] - x[1]) ** 2 - x[2] ** 2
+        f[2] = (x_data[2] - x[0]) ** 2 + (y_data[2] - x[1]) ** 2 - x[2] ** 2
+        return f
+
+    a0 = mean(x_data)
+    b0 = mean(y_data)
+
+    r0s = []
+    for x, y in zip(x_data, y_data):
+        r0s.append(math.sqrt((x - a0) ** 2 + (y - b0) ** 2))
+    R0 = mean(r0s)
+
+    return newton_raphson_system(f, [a0, b0, R0])
+    raise Exception("Not implemented")
 
 '''
     Part 5: Interpolation and Numerical differentiation
