@@ -148,7 +148,6 @@ def f_and_df(t):
     # check for h = E102
     v = u * math.log(M0 / (M0 - mdot * t)) - g * t
     # v'(t) = (f(t+delta_t)-f(t-delta_t))/2*delta_t
-    # print(10E-2)
     dv = ((u * math.log(M0 / (M0 - mdot * (t + 0.1))) - g * (t + 0.1)) - (
             u * math.log(M0 / (M0 - mdot * (t - 0.1))) - g * (t - 0.1))) / (2 * 0.1)
     return v, dv
@@ -202,6 +201,7 @@ def problem_4_1_19(v1, acc):
     # print(fs)
     # v, estimates = newton_raphson(f(t, u, M0, mdot, g, v1), df(t, u, M0, mdot, g), 3, acc)
     # return v
+
     return newton_raphson(f, df, 0, acc)
     raise Exception("Not implemented")
 
@@ -223,8 +223,6 @@ def problem_4_1_19(v1, acc):
         "
 '''
 
-
-#  use eq of circle , return 000 if 3 points is in circle
 
 def f_4_1_26(x_data, y_data, x):
     '''
@@ -455,7 +453,8 @@ def interpolant_5_1_11():
     return polynomial_fit(x_data, y_data, 3)
     raise Exception("Not implemented")
 
-print(interpolant_5_1_11())
+
+# print(interpolant_5_1_11())
 
 def d_dd_5_1_11(x):
     '''
@@ -465,49 +464,6 @@ def d_dd_5_1_11(x):
     Example: d_dd_5_1_11(0) must return (8.56, -0.6).
     Hint: differentiate the interpolant returned by the previous function.
     '''
-
-    def swap(a, i, j):
-        if len(shape(a)) == 1:
-            a[i], a[j] = a[j], a[i]  # unpacking
-        else:
-            a[[i, j], :] = a[[j, i], :]
-
-    def gauss_substitution(a, b):
-        n, m = shape(a)
-        n2, = shape(b)
-        assert (n == n2)
-        x = zeros(n)
-        for i in range(n - 1, -1, -1):  # decreasing index
-            x[i] = (b[i] - dot(a[i, i + 1:], x[i + 1:])) / a[i, i]
-        return x
-
-    def gauss_elimination_pivot(a, b, verbose=False):
-        n, m = shape(a)
-        n2, = shape(b)
-        assert (n == n2)
-        # New in pivot version
-        s = zeros(n)
-        for i in range(n):
-            s[i] = max(abs(a[i, :]))
-        for k in range(n - 1):
-            # New in pivot version
-            p = argmax(abs(a[k:, k]) / s[k:]) + k
-            swap(a, p, k)
-            swap(b, p, k)
-            swap(s, p, k)
-            # The remainder remains as in the previous version
-            for i in range(k + 1, n):
-                assert (a[k, k] != 0)  # this shouldn't happen now, unless the matrix is singular
-                if (a[i, k] != 0):  # no need to do anything when lambda is 0
-                    lmbda = a[i, k] / a[k, k]  # lambda is a reserved keyword in Python
-                    a[i, k:n] = a[i, k:n] - lmbda * a[k, k:n]  # list slice operations
-                    b[i] = b[i] - lmbda * b[k]
-                if verbose:
-                    print(a, b)
-
-    def gauss_pivot(a, b):
-        gauss_elimination_pivot(a, b)
-        return gauss_substitution(a, b)  # as in the previous version
 
     n = 3
     coeffs = interpolant_5_1_11()
@@ -521,11 +477,11 @@ def d_dd_5_1_11(x):
     for i in range(n):
         dd_coeffs[i] = (i + 1) * coeffs[i + 1]  # differentiation from coefficients
 
-    return (d_coeffs[0]+d_coeffs[1]*x+d_coeffs[2]*(x**2)), (dd_coeffs[0]+dd_coeffs[1]*x)
+    return (d_coeffs[0] + d_coeffs[1] * x + d_coeffs[2] * (x ** 2)), (dd_coeffs[0] + dd_coeffs[1] * x)
     raise Exception("Not implemented")
 
-print(d_dd_5_1_11(0))
 
+# print(d_dd_5_1_11(0))
 
 
 def error_5_1_11(x):
@@ -538,5 +494,14 @@ def error_5_1_11(x):
     Hint: differentiate x**3 - 0.3*x**2 - 8.56*x + 8.448 manually and compare
           the result to the output of the previous function.
     '''
-    ## YOUR CODE HERE
+
+    def df(x): return 3 * (x ** 2) - (0.6 * x) - 8.56
+
+    def ddf(x): return 6 * x - 0.6
+
+    a, b = d_dd_5_1_11(x)
+    print(df(x), ddf(x))
+    return a - df(x), b - ddf(x)
     raise Exception("Not implemented")
+
+# print(error_5_1_11(0))
