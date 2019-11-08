@@ -72,7 +72,7 @@ def problem_3_2_5():
     # return avgInc
 
     xbar = mean(year)
-    b = sum(ppm*(year-xbar))/ sum(year*(year-xbar))
+    b = sum(ppm * (year - xbar)) / sum(year * (year - xbar))
     return b
     raise Exception("Not implemented")
 
@@ -103,12 +103,12 @@ def extrapolation_3_2_5():
     # a = yearAvg - ppmAvg * b
     # # fx = a + bx
     # return ((2020 - a) / b)
-    a = mean(ppm)-mean(year)*problem_3_2_5()
+    a = mean(ppm) - mean(year) * problem_3_2_5()
     return a + (problem_3_2_5() * 2020)
     raise Exception("Not implemented")
 
 
-print(extrapolation_3_2_5())
+# print(extrapolation_3_2_5())
 '''
     Part 3: Non-linear equations
 '''
@@ -129,15 +129,9 @@ print(extrapolation_3_2_5())
     "
 '''
 
-def f(t):
-    u = 2510
-    M0 = 2.8E6
-    mdot = 13.3E3
-    g = 9.81
-    return u * math.log(M0 / (M0 - mdot * t)) - g * t
 
-def df(x,h=10E-2):
-    return (f(x+h)-f(x-h))/(2*h)
+def df(x, h=10E-2):
+    return (f(x + h) - f(x - h)) / (2 * h)
 
 
 def f_and_df(t):
@@ -158,13 +152,14 @@ def f_and_df(t):
     # check for h = E102
     v = u * math.log(M0 / (M0 - mdot * t)) - g * t
     # v'(t) = (f(t+delta_t)-f(t-delta_t))/2*delta_t
+    # print(10E-2)
     dv = ((u * math.log(M0 / (M0 - mdot * (t + 0.1))) - g * (t + 0.1)) - (
             u * math.log(M0 / (M0 - mdot * (t - 0.1))) - g * (t - 0.1))) / (2 * 0.1)
     return v, dv
     raise Exception("Not implemented")
 
 
-print(f_and_df(100))
+# print(f_and_df(100))
 
 def newton_raphson(f, diff, init_x, tol, max_iter=1000):
     '''
@@ -175,51 +170,13 @@ def newton_raphson(f, diff, init_x, tol, max_iter=1000):
     max_iter is the desired maximal number of iterations
     '''
     x = init_x
-    estimates = []
     for i in range(max_iter):  # we will break out of the loop when we find the root
         delta_x = -f(x) / diff(x)
         x = x + delta_x
-        estimates.append(x)
         if abs(delta_x) <= tol:
-            return x, estimates
+            return x
     raise Exception("Unable to find a root")
 
-#(636.3361111401882, 12.899530006154123)
-#(636.3361111401882, 12.899530006154123)
-
-
-def df(t, u, M0, mdot, g): return (u * mdot) / (M0 - mdot * t) - g
-
-
-def root_find_bisection(f, xmin, xmax, delta_x):
-    '''
-    f is the function for which we will find a zero
-    xmin and xmax define the bracket
-    delta_x is the desired accuracy
-    Returns (a+b)/2, where the root is in [a, b] and |b-a| <= delta_x
-    '''
-
-    a = xmin
-    b = xmax
-    fa = f(a)
-    fb = f(b)
-    if sign(fa) == sign(fb):
-        raise Exception("Root is not bracketed")  # Root is not bracketed
-    estimates = []  # we will store the successive estimates in this list, for visualization purposes
-    while (b - a > delta_x):
-        # At this point, fa and fb always have different signs
-        c = (a + b) / 2
-        estimates.append(c)
-        fc = f(c)
-        if sign(fc) == sign(fa):
-            # The root must be in [c, b]
-            a = c
-            fa = fc
-        else:
-            b = c
-            fb = fc
-    estimates.append((a + b) / 2)
-    return (a + b) / 2, estimates
 
 def problem_4_1_19(v1, acc):
     '''
@@ -237,20 +194,31 @@ def problem_4_1_19(v1, acc):
     mdot = 13.3E3
     g = 9.81
 
-    xs = [x for x in range(10, 100, 10)]
+    def f(t):
+        return (u * math.log(M0 / (M0 - mdot * t)) - g * t) - v1
+
+    def df(t):
+        return (u * mdot) / (M0 - mdot * t) - g
+
+    # xs = [x for x in range(10, 100, 10)]
     # fs = [f(t, u, M0, mdot, g,v1) for t in range(10, 100, 10)]
-
     # t, estimates = root_find_bisection(f(t, u, M0, mdot, g, v1), 2, 4, 0.01)
-
     # print(fs)
-
     # v, estimates = newton_raphson(f(t, u, M0, mdot, g, v1), df(t, u, M0, mdot, g), 3, acc)
     # return v
-    return 0
+    return newton_raphson(f, df, 0, acc)
     raise Exception("Not implemented")
 
 
-# print(problem_4_1_19(335, 0.1))
+def f(t):
+    u = 2510
+    M0 = 2.8E6
+    mdot = 13.3E3
+    g = 9.81
+    return (u * math.log(M0 / (M0 - mdot * t)) - g * t) - v1
+
+
+print(problem_4_1_19(335, 0.1))
 
 '''
     Part 4: Systems of non-linear equations
@@ -267,6 +235,8 @@ def problem_4_1_19(v1, acc):
         "
 '''
 
+
+#  use eq of circle , return 000 if 3 points is in circle
 
 def f_4_1_26(x_data, y_data, x):
     '''
