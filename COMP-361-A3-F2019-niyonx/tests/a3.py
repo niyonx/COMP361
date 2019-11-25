@@ -182,6 +182,7 @@ def problem_7_1_8(x):
 
     X, Y = runge_kutta_4(F, x0, y0, xStop, h)
 
+
     y_sort_inds = numpy.argsort(Y[:, 0])
     y_sorted = Y[y_sort_inds, 0]
     x_sorted = X[y_sort_inds]
@@ -292,11 +293,110 @@ def problem_7_1_11(x):
     Test: function 'test_problem_7_1_11' in 'test/test_problem_7_1_11.py'
     Hint: Use Runge-Kutta 4.
     '''
+    def F(x,y):
+        return math.sin(x*y)
 
-    ## YOUR CODE HERE
+    def runge_kutta_4(F, x0, y0, x, h):
+        '''
+        Return y(x) given the following initial value problem:
+        y' = F(x, y)
+        y(x0) = y0 # initial conditions
+        h is the increment of x used in integration
+        F = [y'[0], y'[1], ..., y'[n-1]]
+        y = [y[0], y[1], ..., y[n-1]]
+        '''
+        X = []
+        Y = []
+        X.append(x0)
+        Y.append(y0)
+        while x0 < x:
+            k0 = F(x0, y0)
+            k1 = F(x0 + h / 2.0, y0 + h / 2.0 * k0)
+            k2 = F(x0 + h / 2.0, y0 + h / 2 * k1)
+            k3 = F(x0 + h, y0 + h * k2)
+            y0 = y0 + h / 6.0 * (k0 + 2 * k1 + 2.0 * k2 + k3)
+            x0 += h
+            X.append(x0)
+            Y.append(y0)
+        return array(X), array(Y)
+
+    X, Y = runge_kutta_4(F,0,2,6,0.01)
+
+    # print(X)
+    # print(Y)
+
+    # y_sort_inds = numpy.argsort(Y[:, 0])
+    # y_sorted = Y
+    # x_sorted = X[y_sort_inds]
+
+    def swap(a, i, j):
+        if len(numpy.shape(a)) == 1:
+            a[i], a[j] = a[j], a[i]  # unpacking
+        else:
+            a[[i, j], :] = a[[j, i], :]
+
+    def gauss_substitution(a, b):
+        n, m = numpy.shape(a)
+        n2, = numpy.shape(b)
+        assert (n == n2)
+        x = numpy.zeros(n)
+        for i in range(n - 1, -1, -1):  # decreasing index
+            x[i] = (b[i] - numpy.dot(a[i, i + 1:], x[i + 1:])) / a[i, i]
+        return x
+
+    def gauss_elimination_pivot(a, b, verbose=False):
+        n, m = numpy.shape(a)
+        n2, = numpy.shape(b)
+        assert (n == n2)
+        # New in pivot version
+        s = numpy.zeros(n)
+        for i in range(n):
+            s[i] = max(abs(a[i, :]))
+        for k in range(n - 1):
+            # New in pivot version
+            p = numpy.argmax(abs(a[k:, k]) / s[k:]) + k
+            swap(a, p, k)
+            swap(b, p, k)
+            swap(s, p, k)
+            # The remainder remains as in the previous version
+            for i in range(k + 1, n):
+                assert (a[k, k] != 0)  # this shouldn't happen now, unless the matrix is singular
+                if (a[i, k] != 0):  # no need to do anything when lambda is 0
+                    lmbda = a[i, k] / a[k, k]  # lambda is a reserved keyword in Python
+                    a[i, k:n] = a[i, k:n] - lmbda * a[k, k:n]  # list slice operations
+                    b[i] = b[i] - lmbda * b[k]
+                if verbose:
+                    print(a, b)
+
+    def gauss_pivot(a, b):
+        gauss_elimination_pivot(a, b)
+        return gauss_substitution(a, b)  # as in the previous version
+
+    def polynomial_fit(x_data, y_data, m):
+        '''
+        Returns the ai
+        '''
+        # x_power[i] will contain sum_i x_i^k, k = 0, 2m
+        m += 1
+        x_powers = numpy.zeros(2 * m)
+        b = numpy.zeros(m)
+        for i in range(2 * m):
+            x_powers[i] = sum(x_data ** i)
+            if i < m:
+                b[i] = sum(y_data * x_data ** i)
+        a = numpy.zeros((m, m))
+        for k in range(m):
+            for j in range(m):
+                a[k, j] = x_powers[j + k]
+        return gauss_pivot(a, b)[::-1]
+
+    def f(x):
+        return numpy.polyval(polynomial_fit(X, Y, 3), x)
+
+    return f(x)
     raise Exception("Not implemented")
 
-
+print(problem_7_1_11(2))
 '''
     Part 4: Two-Point Boundary Value Problems
 '''
