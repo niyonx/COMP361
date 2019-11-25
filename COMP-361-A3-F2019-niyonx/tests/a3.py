@@ -2,7 +2,7 @@
 import math
 
 import numpy
-from numpy import array, arange
+from numpy import array, arange, sign
 
 '''
 NOTE: You are not allowed to import any function from numpy's linear 
@@ -42,7 +42,7 @@ from numpy import arange
 def problem_6_1_18(x):
     '''
     We will solve problem 6.1.18 in the textbook.
-    Task: The function must return the integral of sin(t)/t 
+    Task: The function must return the integral of sin(t)/t
           between 0 and x:
               problem_6_1_18(x) = int_0^x{sin(t)/t dt}
     Example: problem_6_1_18(1.0) = 0.94608
@@ -76,14 +76,14 @@ def example_6_12():
     We will implement example 6.12 in the textbook:
         "
             Evaluate the value of int_1.5^3 f(x)dx ('the integral of f(x)
-            between 1.5 and 3'), where f(x) is represented by the 
+            between 1.5 and 3'), where f(x) is represented by the
             unevenly spaced data points defined in x_data and y_data.
         "
-    Task: This function must return the value of int_1.5^3 f(x)dx where 
-          f(x) is represented by the evenly spaced data points in x_data and 
+    Task: This function must return the value of int_1.5^3 f(x)dx where
+          f(x) is represented by the evenly spaced data points in x_data and
           y_data below.
     Test: function 'test_example_6_12' in 'tests/test_example_6_12.py'.
-    Hints: 1. interpolate the given points by a polynomial of degree 5. 
+    Hints: 1. interpolate the given points by a polynomial of degree 5.
            2. use 3-node Gauss-Legendre integration (with change of variable)
               to integrate the polynomial.
     '''
@@ -91,8 +91,8 @@ def example_6_12():
     x_data = array([1.2, 1.7, 2.0, 2.4, 2.9, 3.3])
     y_data = array([-0.36236, 0.12884, 0.41615, 0.73739, 0.97096, 0.98748])
 
-    def f(x):
-        return -1 * math.cos(x)
+    # def f(x):
+    #     return -1 * math.cos(x)
 
     def newton_coeffs(x_data, y_data):
         '''
@@ -108,8 +108,76 @@ def example_6_12():
             # now a contains column k of the table
         return a
 
-    return newton_coeffs(x_data, y_data)
+    def swap(a, i, j):
+        if len(numpy.shape(a)) == 1:
+            a[i], a[j] = a[j], a[i]  # unpacking
+        else:
+            a[[i, j], :] = a[[j, i], :]
 
+    def gauss_substitution(a, b):
+        n, m = numpy.shape(a)
+        n2, = numpy.shape(b)
+        assert (n == n2)
+        x = numpy.zeros(n)
+        for i in range(n - 1, -1, -1):  # decreasing index
+            x[i] = (b[i] - numpy.dot(a[i, i + 1:], x[i + 1:])) / a[i, i]
+        return x
+
+    def gauss_elimination_pivot(a, b, verbose=False):
+        n, m = numpy.shape(a)
+        n2, = numpy.shape(b)
+        assert (n == n2)
+        # New in pivot version
+        s = numpy.zeros(n)
+        for i in range(n):
+            s[i] = max(abs(a[i, :]))
+        for k in range(n - 1):
+            # New in pivot version
+            p = numpy.argmax(abs(a[k:, k]) / s[k:]) + k
+            swap(a, p, k)
+            swap(b, p, k)
+            swap(s, p, k)
+            # The remainder remains as in the previous version
+            for i in range(k + 1, n):
+                assert (a[k, k] != 0)  # this shouldn't happen now, unless the matrix is singular
+                if (a[i, k] != 0):  # no need to do anything when lambda is 0
+                    lmbda = a[i, k] / a[k, k]  # lambda is a reserved keyword in Python
+                    a[i, k:n] = a[i, k:n] - lmbda * a[k, k:n]  # list slice operations
+                    b[i] = b[i] - lmbda * b[k]
+                if verbose:
+                    print(a, b)
+
+    def gauss_pivot(a, b):
+        gauss_elimination_pivot(a, b)
+        return gauss_substitution(a, b)  # as in the previous version
+
+    def polynomial_fit(x_data, y_data, m):
+        '''
+        Returns the ai
+        '''
+        # x_power[i] will contain sum_i x_i^k, k = 0, 2m
+        m += 1
+        x_powers = numpy.zeros(2 * m)
+        b = numpy.zeros(m)
+        for i in range(2 * m):
+            x_powers[i] = sum(x_data ** i)
+            if i < m:
+                b[i] = sum(y_data * x_data ** i)
+        a = numpy.zeros((m, m))
+        for k in range(m):
+            for j in range(m):
+                a[k, j] = x_powers[j + k]
+        return gauss_pivot(a, b)[::-1]
+
+    def f(x):
+        coeff = polynomial_fit(x_data, y_data, 5)[::-1]
+        return coeff[0] + coeff[1] * x + coeff[2] * (x ** 2) + coeff[3] * (x ** 3) + coeff[4] * (x ** 4) + coeff[5] * (
+                    x ** 5)
+
+    def gaussQuad(f):
+        return (1.5 / 2) * ((f(1.6691) * 0.555556) + (f(2.25) * 0.888889) + (f(2.8309) * 0.555556))
+
+    return gaussQuad(f)
     raise Exception("Not implemented")
 
 
@@ -122,9 +190,9 @@ def example_6_12():
 
 def problem_7_1_8(x):
     '''
-    We will solve problem 7.1.8 in the textbook. A skydiver of mass m in a 
+    We will solve problem 7.1.8 in the textbook. A skydiver of mass m in a
     vertical free fall experiences an aerodynamic drag force F=cy'² ('c times
-    y prime square') where y is measured downward from the start of the fall, 
+    y prime square') where y is measured downward from the start of the fall,
     and y is a function of time (y' denotes the derivative of y w.r.t time).
     The differential equation describing the fall is:
          y''=g-(c/m)y'²
@@ -181,7 +249,6 @@ def problem_7_1_8(x):
     freq = 20
 
     X, Y = runge_kutta_4(F, x0, y0, xStop, h)
-
 
     y_sort_inds = numpy.argsort(Y[:, 0])
     y_sorted = Y[y_sort_inds, 0]
@@ -293,8 +360,9 @@ def problem_7_1_11(x):
     Test: function 'test_problem_7_1_11' in 'test/test_problem_7_1_11.py'
     Hint: Use Runge-Kutta 4.
     '''
-    def F(x,y):
-        return math.sin(x*y)
+
+    def F(x, y):
+        return math.sin(x * y)
 
     def runge_kutta_4(F, x0, y0, x, h):
         '''
@@ -320,14 +388,7 @@ def problem_7_1_11(x):
             Y.append(y0)
         return array(X), array(Y)
 
-    X, Y = runge_kutta_4(F,0,2,6,0.01)
-
-    # print(X)
-    # print(Y)
-
-    # y_sort_inds = numpy.argsort(Y[:, 0])
-    # y_sorted = Y
-    # x_sorted = X[y_sort_inds]
+    X, Y = runge_kutta_4(F, 0, 2, 6, 0.01)
 
     def swap(a, i, j):
         if len(numpy.shape(a)) == 1:
@@ -396,7 +457,8 @@ def problem_7_1_11(x):
     return f(x)
     raise Exception("Not implemented")
 
-print(problem_7_1_11(2))
+
+# print(problem_7_1_11(2))
 '''
     Part 4: Two-Point Boundary Value Problems
 '''
@@ -404,10 +466,10 @@ print(problem_7_1_11(2))
 
 def problem_8_2_18(a, r0):
     '''
-    We will solve problem 8.2.18 in the textbook. A thick cylinder of 
-    radius 'a' conveys a fluid with a temperature of 0 degrees Celsius in 
-    an inner cylinder of radius 'a/2'. At the same time, the outer cylinder is 
-    immersed in a bath that is kept at 200 Celsius. The goal is to determine the 
+    We will solve problem 8.2.18 in the textbook. A thick cylinder of
+    radius 'a' conveys a fluid with a temperature of 0 degrees Celsius in
+    an inner cylinder of radius 'a/2'. At the same time, the outer cylinder is
+    immersed in a bath that is kept at 200 Celsius. The goal is to determine the
     temperature profile through the thickness of the cylinder, knowing that
     it is governed by the following differential equation:
         d²T/dr²  = -1/r*dT/dr
@@ -417,9 +479,151 @@ def problem_8_2_18(a, r0):
     Task: The function must return the value of the temperature T at r=r0
           for a cylinder of radius a (a/2<=r0<=a).
     Test:  Function 'test_problem_8_2_18' in 'tests/test_problem_8_2_18'
-    Hints: Use the shooting method. In the shooting method, use h=0.01 
+    Hints: Use the shooting method. In the shooting method, use h=0.01
            in Runge-Kutta 4.
     '''
 
-    ## YOUR CODE HERE
+    def shooting_o2(F, a, alpha, b, beta, u0, u1, delta=10E-3):
+        '''
+        Solve the boundary condition problem defined by:
+        y' = F(x, y)
+        y(a) = alpha
+        y(b) = beta
+        u0 and u1 define a bracket for y'(a)
+        delta is the desired accuracy on y'(a)
+        Assumes problem is of order 2 (F has two coordinates, alpha and beta are scalars)
+        '''
+
+        def r(u):
+            '''
+            Boundary residual, as in equation (1)
+            '''
+            # Estimate theta_u
+            # Evaluate y and y' until x=b, using initial condition y(a)=alpha and y'(a)=u
+            X, Y = runge_kutta_4(F, a, array([alpha, u]), b, 0.2)
+            theta_u = Y[-1, 0]  # last row, first column (y)
+            return theta_u - beta
+
+        # Find u as a the zero of r
+        u, _ = false_position(r, u0, u1, delta)
+
+        # Now use u to solve the initial value problem one more time
+        X, Y = runge_kutta_4(F, a, array([alpha, u]), b, 0.2)
+        return X, Y
+
+    def false_position(f, a, b, delta_x):
+        '''
+        f is the function for which we will find a zero
+        a and b define the bracket
+        delta_x is the desired accuracy
+        Returns ci such that |ci-c_{i-1}| < delta_x
+        '''
+        fa = f(a)
+        fb = f(b)
+        if sign(fa) == sign(fb):
+            raise Exception("Root hasn't been bracketed")
+        estimates = []
+        while True:
+            c = (a * fb - b * fa) / (fb - fa)
+            estimates.append(c)
+            fc = f(c)
+            if sign(fc) == sign(fa):
+                a = c
+                fa = fc
+            else:
+                b = c
+                fb = fc
+            if len(estimates) >= 2 and abs(estimates[-1] - estimates[-2]) <= delta_x:
+                break
+        return c, estimates
+
+    def runge_kutta_4(F, x0, y0, x, h):
+        X = []
+        Y = []
+        X.append(x0)
+        Y.append(y0)
+        while x0 < x:
+            k0 = F(x0, y0)
+            k1 = F(x0 + h / 2.0, y0 + h / 2.0 * k0)
+            k2 = F(x0 + h / 2.0, y0 + h / 2 * k1)
+            k3 = F(x0 + h, y0 + h * k2)
+            y0 = y0 + h / 6.0 * (k0 + 2 * k1 + 2.0 * k2 + k3)
+            x0 += h
+            X.append(x0)
+            Y.append(y0)
+        return array(X), array(Y)
+
+    def F(x, y):
+        return array(y[1], (-1 / x) * y[1])
+
+    X, Y = shooting_o2(F, a / 2, 0, a, 200, 0, 100)
+
+    def swap(a, i, j):
+        if len(numpy.shape(a)) == 1:
+            a[i], a[j] = a[j], a[i]  # unpacking
+        else:
+            a[[i, j], :] = a[[j, i], :]
+
+    def gauss_substitution(a, b):
+        n, m = numpy.shape(a)
+        n2, = numpy.shape(b)
+        assert (n == n2)
+        x = numpy.zeros(n)
+        for i in range(n - 1, -1, -1):  # decreasing index
+            x[i] = (b[i] - numpy.dot(a[i, i + 1:], x[i + 1:])) / a[i, i]
+        return x
+
+    def gauss_elimination_pivot(a, b, verbose=False):
+        n, m = numpy.shape(a)
+        n2, = numpy.shape(b)
+        assert (n == n2)
+        # New in pivot version
+        s = numpy.zeros(n)
+        for i in range(n):
+            s[i] = max(abs(a[i, :]))
+        for k in range(n - 1):
+            # New in pivot version
+            p = numpy.argmax(abs(a[k:, k]) / s[k:]) + k
+            swap(a, p, k)
+            swap(b, p, k)
+            swap(s, p, k)
+            # The remainder remains as in the previous version
+            for i in range(k + 1, n):
+                assert (a[k, k] != 0)  # this shouldn't happen now, unless the matrix is singular
+                if (a[i, k] != 0):  # no need to do anything when lambda is 0
+                    lmbda = a[i, k] / a[k, k]  # lambda is a reserved keyword in Python
+                    a[i, k:n] = a[i, k:n] - lmbda * a[k, k:n]  # list slice operations
+                    b[i] = b[i] - lmbda * b[k]
+                if verbose:
+                    print(a, b)
+
+    def gauss_pivot(a, b):
+        gauss_elimination_pivot(a, b)
+        return gauss_substitution(a, b)  # as in the previous version
+
+    def polynomial_fit(x_data, y_data, m):
+        '''
+        Returns the ai
+        '''
+        # x_power[i] will contain sum_i x_i^k, k = 0, 2m
+        m += 1
+        x_powers = numpy.zeros(2 * m)
+        b = numpy.zeros(m)
+        for i in range(2 * m):
+            x_powers[i] = sum(x_data ** i)
+            if i < m:
+                b[i] = sum(y_data * x_data ** i)
+        a = numpy.zeros((m, m))
+        for k in range(m):
+            for j in range(m):
+                a[k, j] = x_powers[j + k]
+        return gauss_pivot(a, b)[::-1]
+
+    def f(x):
+        return numpy.polyval(polynomial_fit(X, Y, 3), x)
+
+    return 0
     raise Exception("Not implemented")
+
+
+print(problem_8_2_18(100, 57))
